@@ -1,0 +1,11 @@
+# Usa la imagen oficial de MongoDB
+FROM mongo:latest
+
+# Configura el directorio de datos de MongoDB
+VOLUME /data/db
+
+# Expone el puerto predeterminado de MongoDB
+EXPOSE 27017
+
+# Comando por defecto para iniciar MongoDB
+CMD ["mongod"]
