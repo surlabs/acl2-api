@@ -3,19 +3,11 @@ from typing import Optional
 from bson import ObjectId
 from core.database import containers_collection
 from core.logger import logger
+from typing_extensions import Annotated
+from pydantic.functional_validators import BeforeValidator
 
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
 
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, ObjectId):
-            return str(v) 
-        if isinstance(v, str) and ObjectId.is_valid(v):
-            return str(ObjectId(v))  
-        raise ValueError("Invalid ObjectId")
+PyObjectId = Annotated[str, BeforeValidator(str)]
     
 class ContainerInfo(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
