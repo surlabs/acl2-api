@@ -62,6 +62,7 @@ class ContainerManager:
         try:
             if user_id is not None and self.containers.get(user_id) is not None:
                 container_id = self.containers[user_id].conatiner_id
+                logger.info(f"Running the command: {command} in container: {container_id}")
                 with self.containers[user_id].lock:
                     if self.containers[user_id].proccess.poll() is not None:
                         output = "Error: ACL2 session finished."
