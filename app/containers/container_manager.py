@@ -32,7 +32,6 @@ class ContainerManager:
 
             container_instance = ContainerInstance(container_name, threading.Lock())
             self.containers[user_id] = container_instance
-            logger.info("---------- self.cntainers")
             self.containers[user_id].proccess = subprocess.Popen(
                 command,
                 stdin=subprocess.PIPE,
@@ -56,11 +55,13 @@ class ContainerManager:
         return res
     
 
-    def send_command(self, command: str, user_id: str) -> str:
+    def send_command(self, command: str, user_id: str | None) -> str:
         output = ""
         ok = True
+        container_id = None
         try:
-            if self.containers[user_id] is not None:
+            if user_id is not None and self.containers.get(user_id) is not None:
+                container_id = self.containers[user_id].conatiner_id
                 with self.containers[user_id].lock:
                     if self.containers[user_id].proccess.poll() is not None:
                         output = "Error: ACL2 session finished."
@@ -71,9 +72,12 @@ class ContainerManager:
                         self.containers[user_id].proccess.stdin.flush()  
                         output = self.read_lines_acl2(user_id)
                         self.containers[user_id].proccess.stdout.readline().strip()
+            else:
+                output = f"The user_id provided: '{user_id}' was null or there are no containers for that user"
+                ok = False
         except Exception as e:
-            output = f"Error sending command: {e}"
+            output = f"Error sending command: {e}."
             ok = False
             logger.error(output)
-        return CommandResponse(user_id=user_id, output=output, command=command[:50], container_id=self.containers[user_id].conatiner_id, ok=ok)  
+        return CommandResponse(user_id=user_id, output=output, command=command[:50], container_id=container_id, ok=ok)  
     

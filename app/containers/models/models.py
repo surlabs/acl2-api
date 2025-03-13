@@ -50,15 +50,16 @@ class ContainerInfo(BaseModel):
         return res
     
 class CommandRequest(BaseModel):
-    container_id: str
+    container_id: Optional[str] = ""
     command: str
+    user_id: Optional[str] = None
 
 class ContainerUp(BaseModel):
-    container_id: str
+    user_id: str
 
 class CommandResponse(BaseModel):
     container_id: Optional[str] = None
     command: str
     output: str
-    user_id: str
+    user_id: Optional[str] = None
     ok: bool = True
