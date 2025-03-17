@@ -3,6 +3,7 @@
 ```bash
 podman machine init
 podman machine start
+podman-composer -d .
 ```
 
 ## Run the proyect 

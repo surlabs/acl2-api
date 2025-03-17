@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     DEBUG: bool = False  
     DATABASE_NAME: str
     ACL2_CONTAINER_NAME: str
+    HOST_URL: str
+    HOST_PORT: str
+    CONTAINER_VALID_PERIOD_IN_SECONDS: int
+    CRON_STOP_CONTAINERS: int
+    CONTAINER_MANAGER: str
 
     class Config:
         env_file = ".env" 
