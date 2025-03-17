@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     CONTAINER_VALID_PERIOD_IN_SECONDS: int
     CRON_STOP_CONTAINERS: int
     CONTAINER_MANAGER: str
+    WS_PROTOCOL: str
 
     class Config:
         env_file = ".env" 
