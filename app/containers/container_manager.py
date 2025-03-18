@@ -2,12 +2,14 @@ import subprocess
 from core.config import settings
 from core.logger import logger
 from datetime import datetime
-from .models.models import ContainerInfo, CommandResponse
+from .models.models import ContainerInfo, CommandResponse, Acl2CheckerResponse
 from .models.structures import ContainerInstance
 import threading
 from api.websocket_manager import ws_manager
 from .repository.container_repo import container_repo
+from .acl2_manager import Acl2Manager
 
+acl2_manager = Acl2Manager()
 
 class ContainerManager:
 
@@ -116,3 +118,33 @@ class ContainerManager:
             ok = False
             logger.error(output)
         return CommandResponse(user_id=user_id, output=output, command=command[:50], container_id=container_id, ok=ok)  
+    
+    async def check_solution(self, formula: str, user_id: str):
+        output = ""
+        ok = True
+        container_id = None
+        correct: bool = False
+        try:
+            if user_id is not None and self.containers.get(user_id) is not None:
+                container_id = self.containers[user_id].container_id
+                logger.info(f"Checking formula: {formula[:50]} in container: {container_id}")
+                with self.containers[user_id].lock:
+                    if self.containers[user_id].proccess.poll() is not None:
+                        output = "Error: ACL2 session finished."
+                    else:
+                        msg = formula + "\n"
+                        logger.info(f"Formula sent {msg}")
+                        self.containers[user_id].proccess.stdin.write(msg) 
+                        self.containers[user_id].proccess.stdin.flush()  
+                        output = await self.read_lines_acl2(user_id)
+                        await self.update_container_info_last_interaction(self.containers[user_id].object_id)
+                        self.containers[user_id].proccess.stdout.readline().strip()
+                        correct = acl2_manager.check_formula(output=output)
+            else:
+                output = f"The user_id provided: '{user_id}' was null or there are no containers for that user"
+                ok = False
+        except Exception as e:
+            output = f"Error sending command: {e}."
+            ok = False
+            logger.error(output)
+        return Acl2CheckerResponse(container_id=container_id, command=formula, output=output, user_id=user_id, correct=correct, ok=ok)

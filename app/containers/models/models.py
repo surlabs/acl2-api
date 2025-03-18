@@ -40,3 +40,11 @@ class CommandResponse(BaseModel):
     user_id: Optional[str] = None
     ok: bool = True
     ws_url: Optional[str] = None
+
+class Acl2CheckerResponse(BaseModel):
+    container_id: Optional[str] = None
+    command: str
+    output: str
+    user_id: Optional[str] = None
+    ok: bool = True
+    correct: bool = False
