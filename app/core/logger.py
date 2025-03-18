@@ -3,10 +3,10 @@ from logging.handlers import TimedRotatingFileHandler
 
 
 log_handler = TimedRotatingFileHandler(
-    "logs/app.log",   # Ruta del archivo de log
-    when="midnight",  # Rotar cada medianoche
-    interval=1,       # Cada 1 día
-    backupCount=7,    # Guardar los últimos 7 días de logs
+    "logs/app.log",  
+    when="midnight", 
+    interval=1,      
+    backupCount=7,   
     encoding="utf-8"
 )
 
