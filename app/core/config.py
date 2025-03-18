@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     CRON_STOP_CONTAINERS: int
     CONTAINER_MANAGER: str
     WS_PROTOCOL: str
+    API_VERSION: str
 
     class Config:
         env_file = ".env" 
