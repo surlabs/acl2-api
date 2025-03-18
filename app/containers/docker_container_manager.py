@@ -32,6 +32,7 @@ class DockerContainerManager:
                 await ws_manager.send_message(user_id=user_id, message=data)
                 output.append(data)
             except OSError:
+                logger.error("Error decoding the response")
                 break  
     
     async def update_container_info_last_interaction(self, object_id: str) -> None|ContainerInfo:
@@ -77,7 +78,6 @@ class DockerContainerManager:
                 bufsize=1
             )
             output = await self.read_full_output(user_id)
-            os.read(self.containers[user_id].master_fd, 1024).decode()
             os.read(self.containers[user_id].master_fd, 1024).decode()
             logger.info("output readen")
             container_info = container_info.update(status=True, container_id=container_name, user_id=user_id)
