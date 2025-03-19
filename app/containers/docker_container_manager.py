@@ -57,7 +57,8 @@ class DockerContainerManager:
         if process.returncode != -1:
             container_info = container_info.update(status=False)
             await container_repo.save(container_info)
-            del self.containers[container_info.user_id]
+            if container_info.user_id in self.containers:
+                del self.containers[container_info.user_id]
             logger.info(f"Container {container_info.container_id} stopped correctly")
         else:
             logger.error(f"Erorr stopping the container {container_info.container_id}")
