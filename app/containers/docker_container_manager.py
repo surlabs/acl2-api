@@ -25,7 +25,8 @@ class DockerContainerManager:
         while True:
             try:
                 data = os.read(self.containers[user_id].master_fd, 1024).decode()
-                if data.endswith(self.acl2_end):
+                if data.replace("\r", "").endswith(self.acl2_end):
+                    logger.info("Tabulation deleted")
                     datat_to_send = data[:data.index(self.acl2_end)+len(self.acl2_end)]
                     output.append(datat_to_send)
                     await ws_manager.send_message(user_id=user_id, message=datat_to_send)
@@ -113,6 +114,7 @@ class DockerContainerManager:
         output = ""
         ok = True
         container_id = None
+        command = command.replace("\r", "")
         try:
             if user_id is not None and self.containers.get(user_id) is not None:
                 container_id = self.containers[user_id].container_id
