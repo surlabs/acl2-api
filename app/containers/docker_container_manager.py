@@ -88,7 +88,7 @@ class DockerContainerManager:
                     stdout=self.containers[user_id].slave_fd,
                     stderr=self.containers[user_id].slave_fd,
                     text=True,
-                    bufsize=1
+                    bufsize=0
                 )
                 output = await self.read_full_output(user_id)
                 os.read(self.containers[user_id].master_fd, 1024).decode()
