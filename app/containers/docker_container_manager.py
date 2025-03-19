@@ -25,7 +25,7 @@ class DockerContainerManager:
         while True:
             try:
                 data = os.read(self.containers[user_id].master_fd, 1024).decode()
-                if self.acl2_end in data:
+                if data.endswith(self.acl2_end):
                     datat_to_send = data[:data.index(self.acl2_end)+len(self.acl2_end)]
                     output.append(datat_to_send)
                     await ws_manager.send_message(user_id=user_id, message=datat_to_send)
@@ -121,7 +121,7 @@ class DockerContainerManager:
                         output = "Error: ACL2 session finished."
                     else:
                         msg = command + "\n"
-                        logger.info(f"Command sent {msg}")
+                        logger.info(f"Command sent {msg}***")
                         os.write(self.containers[user_id].master_fd, command.encode() + b"\n")
                         
                         output = await self.read_full_output(user_id)
