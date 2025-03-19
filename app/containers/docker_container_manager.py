@@ -26,13 +26,15 @@ class DockerContainerManager:
             try:
                 data = os.read(self.containers[user_id].master_fd, 1024).decode()
                 if data.replace("\r", "").strip().endswith(self.acl2_end):
-                    logger.info("Tabulation deleted")
+                    logger.info(f"Tabulation deleted--{data}--")
                     datat_to_send = data[:data.index(self.acl2_end)+len(self.acl2_end)]
                     output.append(datat_to_send)
                     await ws_manager.send_message(user_id=user_id, message=datat_to_send)
                     logger.info("The fix is into")
                     return "".join(output)
-                if not data:
+                if not data or data.replace(" ", "") == "":
+                    await ws_manager.send_message(user_id=user_id, message=data)
+                    logger.info(f"--{data}--")
                     return "".join(output)
                 await ws_manager.send_message(user_id=user_id, message=data)
                 output.append(data)
