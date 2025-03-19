@@ -11,7 +11,7 @@ class ContainerInstance:
     master_fd: int
     slave_fd: int
 
-    def __init__(self, container_id: str, lock: threading):
+    def __init__(self, container_id: str, lock):
         self.container_id = container_id
         self.lock = lock
         self.proccess = None

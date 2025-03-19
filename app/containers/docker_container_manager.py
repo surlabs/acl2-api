@@ -26,31 +26,32 @@ class DockerContainerManager:
 
         while True:
             try:
+                logger.info("----")
                 raw_data = os.read(self.containers[user_id].master_fd, 1024)  # Leer datos en bruto
                 if not raw_data:
                     break  # Salir del bucle si no hay más datos
                 
                 data = raw_data.decode(errors="replace").replace("\r", "").strip()  # Decodificar y limpiar
                 logger.info(f"**data**{repr(data)}")
-                if repr(data) == self.acl2_end or (repr(data).endswith(self.acl2_end[1:]) and repr(data) != self.acl2_end):
-                    output.append(data)
-                    break
+                
                 logger.info(f"*** Data loaded: {repr(data)}")  # Usar repr solo en el log
-
-                if data.endswith(self.acl2_end):  # Si la respuesta termina con el prompt de ACL2
+                if repr(data) == "'\x1b[KACL2 !>'":
+                    break
+                if repr(data).endswith(self.acl2_end) or repr(data).endswith("!>ACL2 !>'"):  # Si la respuesta termina con el prompt de ACL2
                     output.append(data)
                     if first:  # Si es la primera llamada, seguir leyendo
                         first = False
                         continue
                     else:
                         break  # Terminar la lectura si ya es una continuación
-                
+                    
                 output.append(data)
 
             except OSError as e:
                 logger.error(f"Error reading container response: {str(e)}")
                 break  
-
+            except Exception:
+                logger.info("exception")
         return " ".join(output)
 
     async def read_full_output(self, user_id: str):

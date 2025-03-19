@@ -74,14 +74,9 @@ class ContainerManager:
                 logger.info(" ".join(command))
                 container_instance = ContainerInstance(container_name, threading.Lock())
                 self.containers[user_id] = container_instance
-                self.containers[user_id].proccess = subprocess.Popen(
-                    command,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    bufsize=1
-                )
+                self.containers[user_id].process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1, universal_newlines=True)
+                logger.info(self.containers[user_id].process.returncode)
+                logger.info(self.containers[user_id].process.stderr)
                 output = await self.read_lines_acl2(user_id)
                 container_info = container_info.update(status=True, container_id=container_name, user_id=user_id)
                 container_info = await container_repo.save(container_info)
