@@ -14,18 +14,58 @@ acl2_manager = Acl2Manager()
 
 class DockerContainerManager:
     
-    acl2_end = "ACL2 !>"
+    acl2_end = "'ACL2 !>'"
 
     def __init__(self):
         self.acl2_image = settings.ACL2_CONTAINER_NAME
         self.containers: dict[str,ContainerInstance] = {}
+        
+    async def read_container_response(self, user_id: str, first: bool = True) -> str:
+        output = []
+        logger.info("Start reading container response")
+
+        while True:
+            try:
+                raw_data = os.read(self.containers[user_id].master_fd, 1024)  # Leer datos en bruto
+                if not raw_data:
+                    break  # Salir del bucle si no hay más datos
+                
+                data = raw_data.decode(errors="replace").replace("\r", "").strip()  # Decodificar y limpiar
+                logger.info(f"**data**{repr(data)}")
+                if repr(data) == self.acl2_end or (repr(data).endswith(self.acl2_end[1:]) and repr(data) != self.acl2_end):
+                    output.append(data)
+                    break
+                logger.info(f"*** Data loaded: {repr(data)}")  # Usar repr solo en el log
+
+                if data.endswith(self.acl2_end):  # Si la respuesta termina con el prompt de ACL2
+                    output.append(data)
+                    if first:  # Si es la primera llamada, seguir leyendo
+                        first = False
+                        continue
+                    else:
+                        break  # Terminar la lectura si ya es una continuación
+                
+                output.append(data)
+
+            except OSError as e:
+                logger.error(f"Error reading container response: {str(e)}")
+                break  
+
+        return " ".join(output)
 
     async def read_full_output(self, user_id: str):
         output = []
+        logger.info("start to read")
+        counter = 0
         while True:
             try:
-                data = os.read(self.containers[user_id].master_fd, 1024).decode()
+                
+                data = repr(os.read(self.containers[user_id].master_fd, 1024).decode())
+                logger.info(f"+++data**::::{(data)}*---*")
+                
                 if data.replace("\r", "").strip().endswith(self.acl2_end):
+                    counter += 1
+                if data.replace("\r", "").strip().endswith(self.acl2_end) and counter > 2:
                     logger.info(f"Tabulation deleted--{data}--")
                     datat_to_send = data[:data.index(self.acl2_end)+len(self.acl2_end)]
                     output.append(datat_to_send)
@@ -91,10 +131,10 @@ class DockerContainerManager:
                     stdout=self.containers[user_id].slave_fd,
                     stderr=self.containers[user_id].slave_fd,
                     text=True,
-                    bufsize=0
+                    bufsize=1
                 )
-                output = await self.read_full_output(user_id)
-                os.read(self.containers[user_id].master_fd, 1024).decode()
+                output = await self.read_container_response(user_id)
+                #os.read(self.containers[user_id].master_fd, 1024).decode()
                 logger.info(f"output readen for user {user_id}")
                 container_info = container_info.update(status=True, container_id=container_name, user_id=user_id)
                 container_info = await container_repo.save(container_info)
@@ -116,20 +156,18 @@ class DockerContainerManager:
         output = ""
         ok = True
         container_id = None
-        command = command.replace("\r", "").strip()
         try:
             if user_id is not None and self.containers.get(user_id) is not None:
                 container_id = self.containers[user_id].container_id
-                logger.info(f"Running the command: {command[:50]} in container: {container_id}")
+                logger.info(f"Running the command: {repr(command[:50])} in container: {container_id}")
                 with self.containers[user_id].lock:
                     if self.containers[user_id].proccess.poll() is not None:
                         output = "Error: ACL2 session finished."
                     else:
                         msg = command + "\n"
-                        logger.info(f"Command sent {msg}***")
-                        os.write(self.containers[user_id].master_fd, command.encode() + b"\n")
-                        
-                        output = await self.read_full_output(user_id)
+                        logger.info(f"Command sent {repr(msg)}***")
+                        os.write(self.containers[user_id].master_fd, msg.encode())
+                        output = await self.read_container_response(user_id)
                         await self.update_container_info_last_interaction(self.containers[user_id].object_id)
             else:
                 output = f"The user_id provided: '{user_id}' was null or there are no containers for that user"
