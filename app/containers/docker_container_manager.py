@@ -13,6 +13,8 @@ from .acl2_manager import Acl2Manager
 acl2_manager = Acl2Manager()
 
 class DockerContainerManager:
+    
+    acl2_end = "ACL2 !>"
 
     def __init__(self):
         self.acl2_image = settings.ACL2_CONTAINER_NAME
@@ -23,9 +25,10 @@ class DockerContainerManager:
         while True:
             try:
                 data = os.read(self.containers[user_id].master_fd, 1024).decode()
-                if "ACL2 !>" in data:
-                    output.append(data[:data.index("ACL2 !>")])
-                    await ws_manager.send_message(user_id=user_id, message=data[:data.index("ACL2 !>")])
+                if self.acl2_end in data:
+                    datat_to_send = data[:data.index(self.acl2_end)+len(self.acl2_end)]
+                    output.append(datat_to_send)
+                    await ws_manager.send_message(user_id=user_id, message=datat_to_send)
                     return "".join(output)
                 if not data:
                     return "".join(output)
@@ -54,38 +57,45 @@ class DockerContainerManager:
         if process.returncode != -1:
             container_info = container_info.update(status=False)
             await container_repo.save(container_info)
+            del self.containers[container_info.user_id]
             logger.info(f"Container {container_info.container_id} stopped correctly")
         else:
             logger.error(f"Erorr stopping the container {container_info.container_id}")
 
-    async def start_acl2_container(self, user_id):
+    async def start_acl2_container(self, user_id: str):
         res = None
-        container_info = ContainerInfo()
+        ws_url = f"{settings.WS_PROTOCOL}://{settings.HOST_URL}:{settings.HOST_PORT}/ws/{user_id}"
         try:
-            container_name = str(datetime.now().timestamp()).replace(".","")
-            command = [
-                    settings.CONTAINER_MANAGER, "run", "--privileged", "--rm", "-it", "--name", container_name, self.acl2_image, "acl2"
-                ]
-            logger.info(" ".join(command))
-            container_instance = ContainerInstance(container_name, threading.Lock())
-            self.containers[user_id] = container_instance
-            self.containers[user_id].proccess = subprocess.Popen(
-                command,
-                stdin=self.containers[user_id].slave_fd,
-                stdout=self.containers[user_id].slave_fd,
-                stderr=self.containers[user_id].slave_fd,
-                text=True,
-                bufsize=1
-            )
-            output = await self.read_full_output(user_id)
-            os.read(self.containers[user_id].master_fd, 1024).decode()
-            logger.info("output readen")
-            container_info = container_info.update(status=True, container_id=container_name, user_id=user_id)
-            container_info = await container_repo.save(container_info)
-            self.containers[user_id].object_id = container_info.id
-            self.containers[user_id].container_id = container_info.container_id
-            ws_url = f"{settings.WS_PROTOCOL}://{settings.HOST_URL}:{settings.HOST_PORT}/ws/{user_id}"
-            res = CommandResponse(user_id=user_id, output=output, command=" ".join(command), container_id=container_name, ws_url=ws_url)
+            container_info = await container_repo.find_one_by_user_id(user_id, True)
+            if self.containers.get(user_id) is not None and container_info is not None:
+                output = "ACL2 reloaded from the last session"
+                logger.info(f"System reload the container for user {user_id}")
+                res = CommandResponse(user_id=user_id, output=output, command="", container_id=container_info.container_id, ws_url=ws_url)
+            else: 
+                container_info = ContainerInfo()
+                container_name = str(datetime.now().timestamp()).replace(".","")
+                command = [
+                        settings.CONTAINER_MANAGER, "run", "--privileged", "--rm", "-it", "--name", container_name, self.acl2_image, "acl2"
+                    ]
+                logger.info(" ".join(command))
+                container_instance = ContainerInstance(container_name, threading.Lock())
+                self.containers[user_id] = container_instance
+                self.containers[user_id].proccess = subprocess.Popen(
+                    command,
+                    stdin=self.containers[user_id].slave_fd,
+                    stdout=self.containers[user_id].slave_fd,
+                    stderr=self.containers[user_id].slave_fd,
+                    text=True,
+                    bufsize=1
+                )
+                output = await self.read_full_output(user_id)
+                os.read(self.containers[user_id].master_fd, 1024).decode()
+                logger.info(f"output readen for user {user_id}")
+                container_info = container_info.update(status=True, container_id=container_name, user_id=user_id)
+                container_info = await container_repo.save(container_info)
+                self.containers[user_id].object_id = container_info.id
+                self.containers[user_id].container_id = container_info.container_id
+                res = CommandResponse(user_id=user_id, output=output, command=" ".join(command), container_id=container_name, ws_url=ws_url)
         except subprocess.CalledProcessError as e:
             error_msg = f"There is an error launching the {self.acl2_image} container. Error: {e}"
             logger.error(error_msg)
@@ -114,8 +124,6 @@ class DockerContainerManager:
                         os.write(self.containers[user_id].master_fd, command.encode() + b"\n")
                         
                         output = await self.read_full_output(user_id)
-                        logger.info("venga que solo queda uno")
-                        logger.info("yaaaa")
                         await self.update_container_info_last_interaction(self.containers[user_id].object_id)
             else:
                 output = f"The user_id provided: '{user_id}' was null or there are no containers for that user"

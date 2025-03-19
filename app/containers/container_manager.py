@@ -49,37 +49,45 @@ class ContainerManager:
         if process.returncode != -1:
             container_info = container_info.update(status=False)
             await container_repo.save(container_info)
+            del self.containers[container_info.user_id]
             logger.info(f"Container {container_info.container_id} stopped correctly")
         else:
             logger.error(f"Erorr stopping the container {container_info.container_id}")
 
-    async def start_acl2_container(self, user_id):
+    async def start_acl2_container(self, user_id: str):
         res = None
-        container_info = ContainerInfo()
+        ws_url = f"{settings.WS_PROTOCOL}://{settings.HOST_URL}:{settings.HOST_PORT}/ws/{user_id}"
         try:
-            container_name = str(datetime.now().timestamp()).replace(".","")
-            command = [
-                settings.CONTAINER_MANAGER, "run", "--privileged", "--rm", "-it", "--name", container_name, self.acl2_image, "acl2"
-            ]
-            
-            logger.info(" ".join(command))
-            container_instance = ContainerInstance(container_name, threading.Lock())
-            self.containers[user_id] = container_instance
-            self.containers[user_id].proccess = subprocess.Popen(
-                command,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1
-            )
-            output = await self.read_lines_acl2(user_id)
-            container_info = container_info.update(status=True, container_id=container_name, user_id=user_id)
-            container_info = await container_repo.save(container_info)
-            self.containers[user_id].object_id = container_info.id
-            self.containers[user_id].container_id = container_info.container_id
-            ws_url = f"{settings.WS_PROTOCOL}://{settings.HOST_URL}:{settings.HOST_PORT}/ws/{user_id}"
-            res = CommandResponse(user_id=user_id, output=output, command=" ".join(command), container_id=container_name, ws_url=ws_url)
+            container_info = await container_repo.find_one_by_user_id(user_id, True)
+            if self.containers.get(user_id) is not None and container_info is not None:
+                output = "ACL2 reloaded from the last session"
+                logger.info(f"System reload the container for user {user_id}")
+                res = CommandResponse(user_id=user_id, output=output, command="", container_id=container_info.container_id, ws_url=ws_url)
+            else: 
+                container_info = ContainerInfo()
+                container_name = str(datetime.now().timestamp()).replace(".","")
+                command = [
+                    settings.CONTAINER_MANAGER, "run", "--privileged", "--rm", "-it", "--name", container_name, self.acl2_image, "acl2"
+                ]
+                
+                logger.info(" ".join(command))
+                container_instance = ContainerInstance(container_name, threading.Lock())
+                self.containers[user_id] = container_instance
+                self.containers[user_id].proccess = subprocess.Popen(
+                    command,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1
+                )
+                output = await self.read_lines_acl2(user_id)
+                container_info = container_info.update(status=True, container_id=container_name, user_id=user_id)
+                container_info = await container_repo.save(container_info)
+                self.containers[user_id].object_id = container_info.id
+                self.containers[user_id].container_id = container_info.container_id
+                ws_url = f"{settings.WS_PROTOCOL}://{settings.HOST_URL}:{settings.HOST_PORT}/ws/{user_id}"
+                res = CommandResponse(user_id=user_id, output=output, command=" ".join(command), container_id=container_name, ws_url=ws_url)
         except subprocess.CalledProcessError as e:
             error_msg = f"There is an error launching the {self.acl2_image} container. Error: {e}"
             logger.error(error_msg)
