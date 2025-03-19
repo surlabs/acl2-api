@@ -29,6 +29,7 @@ class DockerContainerManager:
                     datat_to_send = data[:data.index(self.acl2_end)+len(self.acl2_end)]
                     output.append(datat_to_send)
                     await ws_manager.send_message(user_id=user_id, message=datat_to_send)
+                    logger.info("The fix is into")
                     return "".join(output)
                 if not data:
                     return "".join(output)
