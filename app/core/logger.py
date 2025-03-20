@@ -3,7 +3,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 
 log_handler = TimedRotatingFileHandler(
-    "logs/app.log",  
+    "/app/app/logs/app.log",  
     when="midnight", 
     interval=1,      
     backupCount=7,   
@@ -24,5 +24,3 @@ console_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(
 
 logger.addHandler(log_handler)
 logger.addHandler(console_handler)
-
-#logger = logging.getLogger("FastAPI")

@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str
     DEBUG: bool = False  
     DATABASE_NAME: str
-    ACL2_CONTAINER_NAME: str
     HOST_URL: str
     HOST_PORT: str
     PROCESS_VALID_PERIOD_IN_SECONDS: int

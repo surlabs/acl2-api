@@ -1,8 +1,8 @@
-version: '3.8'
+version: "3.8"
 
 services:
   mongodb:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.mongo
     container_name: acl2_mongo
@@ -14,6 +14,32 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
       - mongo_data:/data/db
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile.fastapi
+    container_name: acl2_fastapi
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+    environment:
+      MONGO_URI: "mongodb://admin:password@acl2_mongo:27017/"
+    command:
+      [
+        "fastapi",
+        "run",
+        "app/main.py",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
+    volumes:
+      - ./acl2_api/app/logs:/app/app/logs
 
 volumes:
   mongo_data:

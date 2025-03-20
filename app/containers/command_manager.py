@@ -22,7 +22,6 @@ class CommandManager:
     def __new__(cls, *args, **kwargs):
         if cls._manager is None:
             cls._manager = super().__new__(cls)
-        cls.acl2_image = settings.ACL2_CONTAINER_NAME
         cls.command_instances: dict[str, CommandInstance] = {}
         return cls._manager
 
