@@ -16,3 +16,13 @@ class ContainerInstance:
         self.lock = lock
         self.proccess = None
         self.master_fd, self.slave_fd = pty.openpty()
+        
+class CommandInstance:
+    proccess: subprocess.Popen
+    object_id: str
+    lock: threading
+
+    def __init__(self, container_id: str, lock):
+        self.container_id = container_id
+        self.proccess = None
+        self.lock = lock

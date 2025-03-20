@@ -2,6 +2,7 @@ from fastapi import APIRouter, WebSocket, Request
 from containers.container_manager import ContainerManager
 from containers.docker_container_manager import DockerContainerManager
 from containers.container_manager_spaw import ContainerManagerSpaw
+from containers.command_manager import CommandManager
 from core.logger import logger
 from .models.models import CommandRequest, ContainerUp, CommandResponse
 from api.websocket_manager import ws_manager
@@ -10,7 +11,7 @@ import json
 
 container_router = APIRouter()
 manager = ContainerManager()
-manager_docker = ContainerManagerSpaw()# DockerContainerManager()
+manager_docker = CommandManager()#ContainerManagerSpaw()# DockerContainerManager()
 
 @container_router.post("/", response_model=CommandResponse)
 async def lauch_acl2_container(request: Request):

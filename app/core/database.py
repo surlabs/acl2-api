@@ -5,3 +5,4 @@ from .config import settings
 client = AsyncIOMotorClient(settings.DATABASE_URL)
 database = client[settings.DATABASE_NAME]
 containers_collection = database.get_collection("containers")
+commands_collection = database.get_collection("commands")

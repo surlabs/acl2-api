@@ -5,3 +5,4 @@ apscheduler==3.11.0
 docker==7.1.0
 fastapi_utilities
 pytz
+pexpect

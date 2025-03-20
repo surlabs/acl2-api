@@ -12,14 +12,14 @@ class ContainerRepo:
         updated_document = await containers_collection.find_one({"_id": ObjectId(id)})
         if updated_document:
             res = ContainerInfo(**updated_document)
-            return res
+        return res
         
     async def find_one_by_user_id(self, id: str, status: bool) -> None|ContainerInfo:
         res = None
         updated_document = await containers_collection.find_one({"user_id": id, "status": status})
         if updated_document:
             res = ContainerInfo(**updated_document)
-            return res
+        return res
 
     async def save(self, container_info: ContainerInfo):
         res = None
