@@ -1,4 +1,3 @@
-cd C:\Users\nimsu\Documents\python\acl2-api &
-venv\Scripts\activate &
+pip install -r requirements &
 cd app &
-fastapi dev main.py 
+fastapi run
