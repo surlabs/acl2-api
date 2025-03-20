@@ -25,6 +25,7 @@ services:
       - "8000:8000"
     depends_on:
       - mongodb
+    privileged: true
     environment:
       MONGO_URI: "mongodb://admin:password@acl2_mongo:27017/"
     command:
