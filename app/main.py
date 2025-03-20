@@ -1,10 +1,8 @@
 from fastapi import FastAPI
-from containers.container_manager import ContainerManager
 from fastapi.middleware.cors import CORSMiddleware
 from api.router import router
 from core.jobs import lifespan
 
-container_manager = ContainerManager()
 
 
 app = FastAPI(

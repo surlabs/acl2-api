@@ -21,7 +21,7 @@ class CommandRepo:
             res = CommandInfo(**updated_document)
         return res
 
-    async def save(self, container_info: CommandInfo):
+    async def save(self, container_info: CommandInfo) -> CommandInfo | None:
         res = None
         if container_info.id is None:
             result = await commands_collection.insert_one(container_info.model_dump(exclude=["id"]))
@@ -35,10 +35,10 @@ class CommandRepo:
 
         return res
     
-    async def get_containers_with_no_interactions(self):
+    async def get_commands_with_no_interactions(self) -> list[CommandInfo]:
         res = None
         now_timestamp = datetime.now().timestamp()
-        time_ago = now_timestamp - settings.CONTAINER_VALID_PERIOD_IN_SECONDS
+        time_ago = now_timestamp - settings.PROCESS_VALID_PERIOD_IN_SECONDS
 
         query = {
             "update_at": {"$lte": time_ago},
@@ -49,8 +49,8 @@ class CommandRepo:
 
         return res
     
-    def delete_one(self, container_info: CommandInfo):
-        commands_collection.delete_one({"_id": ObjectId(container_info.id)})
+    async def delete_one(self, container_info: CommandInfo):
+        await commands_collection.delete_one({"_id": ObjectId(container_info.id)})
 
     
 command_repo = CommandRepo()

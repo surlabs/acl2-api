@@ -11,9 +11,8 @@ class Settings(BaseSettings):
     ACL2_CONTAINER_NAME: str
     HOST_URL: str
     HOST_PORT: str
-    CONTAINER_VALID_PERIOD_IN_SECONDS: int
-    CRON_STOP_CONTAINERS: int
-    CONTAINER_MANAGER: str
+    PROCESS_VALID_PERIOD_IN_SECONDS: int
+    CRON_STOP_PROCESS: int
     WS_PROTOCOL: str
     API_VERSION: str
 

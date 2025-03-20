@@ -5,15 +5,14 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from contextlib import asynccontextmanager
 from pytz import utc
 from fastapi import FastAPI
-from containers.repository.container_repo import container_repo
-from containers.container_manager import ContainerManager
-from containers.docker_container_manager import DockerContainerManager
+from containers.repository.command_repo import command_repo
+from containers.command_manager import CommandManager
+
 from core.config import settings
 
 router = APIRouter()
 scheduler = AsyncIOScheduler(timezone=utc)
-manager = ContainerManager()
-manager_docker = DockerContainerManager()
+manager = CommandManager()
 
 
 @asynccontextmanager
@@ -23,13 +22,11 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
 
 
-@scheduler.scheduled_job('interval', seconds=settings.CRON_STOP_CONTAINERS)
+@scheduler.scheduled_job('interval', seconds=settings.CRON_STOP_PROCESS)
 async def fetch_current_time():
-    containers_delete = await (container_repo.get_containers_with_no_interactions())
-    logger.info(f"Containers to stop: {[i['container_id'] for i in containers_delete]}")
-    for i in containers_delete:
-        if settings == "podman":
-            await manager.stop_container(i["_id"])
-        else:
-            await manager_docker.stop_container(i["_id"])
+    process_stop = await (command_repo.get_commands_with_no_interactions())
+    logger.info(f"Process to stop: {[i['_id'] for i in process_stop]}")
+    for i in process_stop:
+        await manager.stop_process(i["_id"])
+       
         
