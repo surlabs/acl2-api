@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime
 from core.config import settings
 from core.logger import logger
-from .models.models import CommandInfo, CommandResponse, Acl2CheckerResponse
+from .models.models import CommandInfo, CommandResponse, Acl2CheckerResponse, ProcessUp
 from .models.structures import CommandInstance
 from api.websocket_manager import ws_manager
 from .repository.command_repo import command_repo
@@ -51,12 +51,9 @@ class CommandManager:
                 
                 if char == "\n" or "ACL2 !>" in buffer:
                     clean_line = buffer.strip()
-                    logger.info(f"*{clean_line}*")
+                    logger.debug(f"*{clean_line}*")
                     output.append(clean_line)
                     await ws_manager.send_message(user_id=user_id, message=clean_line)
-                    
-                    if "ACL2 !>" in clean_line:
-                        break
 
                     buffer = ""  
 
@@ -99,7 +96,9 @@ class CommandManager:
         except Exception as e:
             logger.error(f"Error stopping the process {process_info.id}, {e}")
 
-    async def start_acl2_process(self, user_id: str):
+    async def start_acl2_process(self, process_up: ProcessUp):
+        user_id: str = process_up.user_id
+        secret: str = process_up.secret
         ws_url = f"{settings.WS_PROTOCOL}://{settings.HOST_URL}:{settings.HOST_PORT}/ws/{user_id}"
         try:
             container_info = await command_repo.find_one_by_user_id(user_id, True)
@@ -118,7 +117,7 @@ class CommandManager:
                 container_name = str(datetime.now().timestamp()).replace(".", "")
                 command_list = ["acl2"]
                 logger.info(command_list)
-                command_instance = CommandInstance(container_name, asyncio.Lock())
+                command_instance = CommandInstance(container_name, asyncio.Lock(), process_up.secret)
                 self.command_instances[user_id] = command_instance
                 logger.info(f"Currently we add a new userId, we have: {self.command_instances.keys()}")
                 self.command_instances[user_id].process = subprocess.Popen(
@@ -131,7 +130,7 @@ class CommandManager:
                     shell=True
                 )
                 output = await self.read_lines_acl2(user_id)
-                container_info = container_info.update(status=True, user_id=user_id)
+                container_info = container_info.update(status=True, user_id=user_id, secret=secret)
                 container_info = await command_repo.save(container_info)
                 self.command_instances[user_id].object_id = container_info.id
                 return CommandResponse(
@@ -189,11 +188,12 @@ class CommandManager:
         ok = True
         container_id = None
         correct = False
+        secret = ""
         try:
             if user_id is not None and self.command_instances.get(user_id) is not None:
                 container = self.command_instances[user_id]
                 container_id = container.container_id
-                logger.info(f"Checking formula: {formula[:50]} in container: {container_id}")
+                logger.info(f"Checking formula: {formula[:50]} in process: {container_id}")
                 async with container.lock:
                     if container.process.poll() is not None:
                         output = "Error: ACL2 session finished."
@@ -204,9 +204,8 @@ class CommandManager:
                         container.process.stdin.flush()
                         output = await self.read_lines_acl2(user_id)
                         await self.update_command_info_last_interaction(container.object_id)
-                        # Leer una línea extra de forma asíncrona si es necesario
-                        _ = await asyncio.to_thread(container.process.stdout.readline)
                         correct = acl2_manager.check_formula(output=output)
+                        secret = container.secret if correct else secret
             else:
                 output = f"The user_id provided: '{user_id}' was null or there are no command_instances for that user"
                 ok = False
@@ -220,5 +219,6 @@ class CommandManager:
             output=output,
             user_id=user_id,
             correct=correct,
+            secret=secret,
             ok=ok
         )
