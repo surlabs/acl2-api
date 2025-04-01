@@ -126,7 +126,7 @@ class CommandManager:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
-                    bufsize=10,
+                    bufsize=0,
                     shell=True
                 )
                 output = await self.read_lines_acl2(user_id)
